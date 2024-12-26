@@ -9,9 +9,10 @@ import (
 	"time"
 )
 
-const operators string = "+*"
+var operators = []string{"+", "*", "||"}
 
-var operation = make(map[int][]int)
+var answers []int
+var operands [][]int
 
 func init() {
 	file, err := os.Open("input2.txt")
@@ -25,6 +26,7 @@ func init() {
 
 		num, err := strconv.Atoi(result[0])
 		errorCheck(err, "Error converting string to int.")
+		answers = append(answers, num)
 
 		nums := strings.Split(strings.TrimSpace(result[1]), " ")
 		for i := range nums {
@@ -33,7 +35,7 @@ func init() {
 
 			temp = append(temp, num)
 		}
-		operation[num] = temp
+		operands = append(operands, temp)
 	}
 }
 
@@ -49,30 +51,37 @@ func main() {
 func part1() int {
 	sum := 0
 
-	//loop over all keys and values in the map
-	for key, value := range operation {
+	//loop over the length of the list
+	for k := 0; k < len(answers); k++ {
 		//gets the size of the combinations 2^(n-1)
-		arrSize := len(value) - 1
+		arrSize := len(operands[k]) - 1
 
 		//array of all the possible combinations of the + and * operators
 		results := generateCombinations(operators, arrSize)
 
 		//loops over the array of combinations
 		for i := 0; i < len(results); i++ {
-			potentialSum := value[0]
+			potentialSum := operands[k][0]
 			for j := 0; j < len(results[i]); j++ {
 				switch results[i][j] {
-				case '+':
-					potentialSum += value[j+1]
-				case '*':
-					potentialSum *= value[j+1]
+				case "+":
+					potentialSum += operands[k][j+1]
+				case "*":
+					potentialSum *= operands[k][j+1]
+				case "||":
+					//concatenates ex: 97 || 7 = 977
+					tempStr := strconv.Itoa(potentialSum)
+					tempStr += strconv.Itoa(operands[k][j+1])
+					num, err := strconv.Atoi(tempStr)
+					errorCheck(err, "Error converting string to int.")
+					potentialSum = num
 				}
-				if potentialSum > key {
+				if potentialSum > answers[k] {
 					break
 				}
 			}
 
-			if potentialSum == key {
+			if potentialSum == answers[k] {
 				sum += potentialSum
 				break
 			}
@@ -81,24 +90,27 @@ func part1() int {
 	return sum
 }
 
-func generateCombinations(operators string, length int) []string {
-	var results []string
+func generateCombinations(operators []string, length int) [][]string {
+	var results [][]string
 	if length <= 0 {
 		return results
 	}
 
-	var backtrack func(current string)
-	backtrack = func(current string) {
+	var backtrack func(current []string)
+	backtrack = func(current []string) {
 		if len(current) == length {
-			results = append(results, current)
+			// Make a copy of the current combination to avoid issues with shared references
+			combination := make([]string, len(current))
+			copy(combination, current)
+			results = append(results, combination)
 			return
 		}
 		for _, op := range operators {
-			backtrack(current + string(op))
+			backtrack(append(current, op))
 		}
 	}
 
-	backtrack("")
+	backtrack([]string{})
 	return results
 }
 
